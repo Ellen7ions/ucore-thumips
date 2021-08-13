@@ -1301,6 +1301,9 @@ static inline void tlb_write_indexed(void)
 {
 	__asm__ __volatile__(
 		".set noreorder\n\t"
+		".set mips32r2\n\t"
+		"ehb\n\t"
+		".set mips0\n\t"
 		"tlbwi\n\t"
 		".set reorder");
 }
@@ -1309,6 +1312,9 @@ static inline void tlb_write_random(void)
 {
 	__asm__ __volatile__(
 		".set noreorder\n\t"
+		".set mips32r2\n\t"
+		"ehb\n\t"
+		".set mips0\n\t"
 		"tlbwr\n\t"
 		".set reorder");
 }

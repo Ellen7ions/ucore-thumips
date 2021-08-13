@@ -25,9 +25,11 @@ void __noreturn
 kern_init(void) {
     //setup_exception_vector();
     tlb_invalidate_all();
+  	kprintf("tlb invalidated\n");
 
     pic_init();                 // init interrupt controller
     cons_init();                // init the console
+  	kprintf("console is inited\n");
     clock_init();               // init clock interrupt
 
     check_initrd();

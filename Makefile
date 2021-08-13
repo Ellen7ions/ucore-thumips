@@ -6,8 +6,9 @@ ON_FPGA :=y
 
 V       := @
 
-#GCCPREFIX:=mips-sde-elf-
-GCCPREFIX ?= /home/guest/cpu/build-gcc/mips_gcc/bin/mips-sde-elf-
+#GCCPREFIX:= mips-sde-elf-
+GCCPREFIX:= mipsel-linux-
+#GCCPREFIX ?= /home/guest/cpu/build-gcc/mips_gcc/bin/mips-sde-elf-
 
 # eliminate default suffix rules
 .SUFFIXES: .c .S .h
@@ -22,7 +23,8 @@ GDB		:= $(GCCPREFIX)gdb
 THUMIPSCC		:= ./thumips-cc
 CLANG := clang
 CC :=$(GCCPREFIX)gcc
-CFLAGS	:=  -fno-builtin -nostdlib  -nostdinc -g  -EL -G0 -fno-delayed-branch -Wa,-O0
+CFLAGS	:=  -fno-builtin -nostdlib  -nostdinc -mno-abicalls -g  -EL -G0 -fno-delayed-branch -Wa,-O0
+
 CTYPE	:= c S
 
 LD      := $(GCCPREFIX)ld
@@ -66,8 +68,8 @@ INCLUDES  := $(addprefix -I,$(SRC_DIR))
 INCLUDES  += -I$(SRCDIR)/include
 
 ifeq  ($(ON_FPGA), y)
-USER_APPLIST:= sh #ls 
-INITRD_BLOCK_CNT:=300 
+USER_APPLIST:= sh ls cat
+INITRD_BLOCK_CNT:=700 
 FPGA_LD_FLAGS += -S
 MACH_DEF := -DMACH_FPGA
 else
@@ -125,7 +127,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -c -mips1 $(INCLUDES) $(CFLAGS) $(MACH_DEF) $<  -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.S
-	$(CC) -mips32 -c -D__ASSEMBLY__ $(MACH_DEF) $(INCLUDES) -g -EL -G0  $<  -o $@
+	$(CC) -mno-abicalls -mips32 -c -D__ASSEMBLY__ $(MACH_DEF) $(INCLUDES) -g -EL -G0  $<  -o $@
 
 checkdirs: $(BUILD_DIR) $(DEP_DIR)
 
@@ -155,7 +157,7 @@ $(USER_LIB): $(BUILD_DIR) $(USER_LIB_OBJ)
 define make-user-app
 $1: $(BUILD_DIR) $(addsuffix .o,$1) $(USER_LIB)
 	@echo LINK $$@
-	$(LD) $(FPGA_LD_FLAGS) -T $(USER_LIB_SRCDIR)/user.ld  $(addsuffix .o,$1) $(USER_LIB) -o $$@
+	$(LD) $(FPGA_LD_FLAGS) -T $(USER_LIB_SRCDIR)/user.ld  $(addsuffix .o,$1) --whole-archive $(USER_LIB) -o $$@
 	$(SED) 's/$$$$FILE/$(notdir $1)/g' tools/piggy.S.in > $(USER_OBJDIR)/piggy.S
 	$(AS) $(USER_OBJDIR)/piggy.S -o $$@.piggy.o
 endef
@@ -166,7 +168,7 @@ $(USER_OBJDIR)/%.o: $(USER_SRCDIR)/%.c
 	$(CC) -c -mips1  $(USER_INCLUDE) -I$(SRCDIR)/include $(CFLAGS)  $<  -o $@
 
 $(USER_OBJDIR)/%.o: $(USER_SRCDIR)/%.S
-	$(CC) -mips32 -c -D__ASSEMBLY__ $(USER_INCLUDE) -I$(SRCDIR)/include -g -EL -G0  $<  -o $@
+	$(CC) -mno-abicalls -mips32 -c -D__ASSEMBLY__ $(USER_INCLUDE) -I$(SRCDIR)/include -g -EL -G0  $<  -o $@
 
 
 # filesystem
@@ -194,4 +196,4 @@ $(OBJDIR)/ucore-kernel-initrd:  $(BUILD_DIR) $(TOOL_MKSFS) $(OBJ) $(USER_APP_BIN
 boot/loader.bin: boot/bootasm.S
 	$(CC) $(CFLAGS) -g -c -o boot/loader.o $^
 	$(LD) -EL -n -G0 -Ttext 0xbfc00000 -o boot/loader boot/loader.o
-	$(OBJCOPY) -O binary  -S boot/loader $@
+	$(OBJCOPY) -O binary -j .text -S boot/loader $@

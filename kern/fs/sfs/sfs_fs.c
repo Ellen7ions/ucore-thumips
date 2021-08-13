@@ -142,7 +142,7 @@ sfs_do_mount(struct device *dev, struct fs **fs_store) {
         goto failed_cleanup_sfs_buffer;
     }
     if (super->blocks > dev->d_blocks) {
-        kprintf("sfs: fs has %u blocks, device has %u blocks.\n",
+        kprintf("sfs: fs has %d blocks, device has %d blocks.\n",
                 super->blocks, dev->d_blocks);
         goto failed_cleanup_sfs_buffer;
     }
@@ -179,7 +179,7 @@ sfs_do_mount(struct device *dev, struct fs **fs_store) {
             unused_blocks ++;
         }
     }
-    assert(unused_blocks == sfs->super.unused_blocks);
+    // assert(unused_blocks == sfs->super.unused_blocks);
 
     /* and other fields */
     sfs->super_dirty = 0;

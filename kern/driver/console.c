@@ -43,12 +43,11 @@ serial_init(void) {
     if(serial_exists)
       return ;
     serial_exists = 1;
-#ifdef MACH_QEMU
     // Turn off the FIFO
     outb(COM1 + COM_FCR, 0);
     // Set speed; requires DLAB latch
     outb(COM1 + COM_LCR, COM_LCR_DLAB);
-    outb(COM1 + COM_DLL, (uint8_t) (115200 / 9600));
+    outb(COM1 + COM_DLL, (uint8_t) (COM1_BAUD_DDL));
     outb(COM1 + COM_DLM, 0);
 
     // 8 data bits, 1 stop bit, parity off; turn off DLAB latch
@@ -58,9 +57,6 @@ serial_init(void) {
     outb(COM1 + COM_MCR, 0);
     // Enable rcv interrupts
     outb(COM1 + COM_IER, COM_IER_RDI);
-#elif defined MACH_FPGA
-    //TODO
-#endif
 
     pic_enable(COM1_IRQ);
 }
@@ -68,22 +64,17 @@ serial_init(void) {
 
 static void
 serial_putc_sub(int c) {
-#ifdef MACH_QEMU
+    while (!(inb(COM1 + COM_LSR) & COM_LSR_TXRDY)) {
+    }
     outb(COM1 + COM_TX, c);
-#elif defined MACH_FPGA
-    //TODO
-    while( (inw(COM1 + 0x04) & 0x01) == 0 );
-    outw(COM1 + 0x00, c & 0xFF);
-#endif
 }
 
 /* serial_putc - print character to serial port */
 static void
 serial_putc(int c) {
-    if (c == '\b') {
-        serial_putc_sub('\b');
-        serial_putc_sub(' ');
-        serial_putc_sub('\b');
+    if (c == '\n') {
+        serial_putc_sub('\r');
+        serial_putc_sub('\n');
     }else {
         serial_putc_sub(c);
     }
@@ -93,31 +84,19 @@ serial_putc(int c) {
 static int
 serial_proc_data(void) {
     int c;
-#ifdef MACH_QEMU
     if (!(inb(COM1 + COM_LSR) & COM_LSR_DATA)) {
         return -1;
     }
     c = inb(COM1 + COM_RX);
-#elif defined MACH_FPGA
-    //TODO
-    if( (inw(COM1 + 0x04) & 0x02) == 0)
-      return -1;
-    c = inw(COM1 + 0x00) & 0xFF;
-#endif
-    if (c == 127) {
-        c = '\b';
-    }
     return c;
 }
 
 
 void serial_int_handler(void *opaque)
 {
-#ifdef MACH_QEMU
   unsigned char id = inb(COM1+COM_IIR);
   if(id & 0x01)
     return ;
-#endif
   //int c = serial_proc_data();
   int c = cons_getc(c);
   extern void dev_stdin_write(char c);

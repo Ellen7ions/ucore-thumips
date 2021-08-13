@@ -6,7 +6,7 @@ if len(sys.argv) < 2:
   print 'usage: disasm.py [hex] [hex]...'
   exit(0)
 
-OBJDUMP='mips-sde-elf-objdump'
+OBJDUMP='/home/wangzonglei/mips_elf/bin/mips-sde-elf-objdump'
 
 temp = tempfile.NamedTemporaryFile()
 #print temp.name
